@@ -47,9 +47,10 @@ function SocketAuthentication(io, options) {
 
   io.sockets.on('connection', function (socket) {
     socket.emit('authorize');
+    console.log("socket.id",socket.id)
     socket.on('auth', function (data) {
       console.log("sessionid:",data.sessionid);
-      self.authorize(data.sessionid,function(err,authorized) {
+      self.authorize(socket.id,data.sessionid,function(err,authorized) {
         console.log("Authorized: ",authorized, data.sessionid)
       });
     });
@@ -65,23 +66,87 @@ function SocketAuthentication(io, options) {
 
   });
 
-  this.get_user = function(id,callback) {
-    
+  this.get_user_sessions = function(user_id,callback) {
+    var key = options.redis_namespace + 'sessions.users:' + user_id;
+    var ids = [];
+    self.rc.smembers(key,function(err,members) {
+      if (members) {
+        self.rc.mget(members,function(err,items) {
+          if (items) {
+            for (var i = 0; i < items.length; i++) {
+              var item = items[i];
+              if (item)
+                ids.push(item);
+              else
+                self.rc.srem(key,members[i]); // Cleanup expired key
+            }
+            callback && callback(false,ids);
+          }
+          else
+            callback && callback(true,null);
+        });        
+      }
+      else
+        callback && callback(true,null);
+    });
+  };
+
+  this.get_user_session_keys = function(user_id,callback) {
+    var key = options.redis_namespace + 'sessions.users:' + user_id;
+    var ids = [];
+    self.rc.smembers(key,function(err,members) {
+      if (members) {
+        self.rc.mget(members,function(err,items) {
+          if (items) {
+            for (var i = 0; i < items.length; i++) {
+              var item = items[i];
+              if (item)
+                ids.push(members[i]);
+              else
+                self.rc.srem(key,members[i]); // Cleanup expired key
+            }
+            callback && callback(false,ids);
+          }
+          else
+            callback && callback(true,null);
+        });        
+      }
+      else
+        callback && callback(true,null);
+    });
   };
 
   this.getSessionKey = function(sessionid) {
-    return key = options.redis_namespace + 'sessions:' + sessionid;
+    return options.redis_namespace + 'sessions:' + sessionid;
   };
 
-  this.authorize = function(sessionid, callback) {    
+  this.getSessionSocketKey = function(sessionid) {
+    return options.redis_namespace + 'sockets:' + sessionid;
+  };
+
+  this.getSessionSocket = function(sessionkey,callback) {
+    var new_key = sessionkey.replace(options.redis_namespace + 'sessions:',options.redis_namespace + 'sockets:');
+    console.log("getSessionSocket",new_key);
+    self.rc.get(new_key,function(err,data) {
+      if (data)
+        callback && callback(false,data);
+      else
+        callback && callback(true,null);
+    });
+  };
+
+  this.authorize = function(socketid,sessionid, callback) {    
     if (sessionid) {
       var key = self.getSessionKey(sessionid);
       self.rc.get(key,function(err,obj) {
-        console.log(err,obj)
+        console.log(err,obj,socketid);
         if (obj) {
-          console.log("User connected",obj);
-          rc.expire(key,self.session_timeout);  // Reset expiration when user reconnects
-          callback && callback(null, true);
+          console.log("User found",obj);
+          self.rc.setex(self.getSessionSocketKey(sessionid), self.session_timeout, socketid, function(err,result) {
+            console.log("User connected",obj);
+            rc.expire(key,self.session_timeout);  // Reset expiration when user reconnects
+            callback && callback(null, true);            
+          });
         }
         else
           callback && callback("Session is not longer active.", false);
@@ -100,4 +165,5 @@ function SocketAuthentication(io, options) {
     
   };
 
+  return this;
 }
