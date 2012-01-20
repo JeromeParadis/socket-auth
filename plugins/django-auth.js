@@ -7,7 +7,7 @@ var connect = require('connect')
 
 exports = module.exports = SocketAuthentication;
 
-function SocketAuthentication(io, options) {
+function SocketAuthentication(io, options, auth_callback) {
   this.rc = redis.createClient();
   this.redis_namespace = (options && options.redis_namespace) ? options.redis_namespace : "sauth.";
   this.session_timeout = (options && options.session_timeout) ? options.session_timeout * 60 : 20 * 60;
@@ -51,7 +51,8 @@ function SocketAuthentication(io, options) {
     socket.on('auth', function (data) {
       console.log("sessionid:",data.sessionid);
       self.authorize(socket.id,data.sessionid,function(err,authorized) {
-        console.log("Authorized: ",authorized, data.sessionid)
+        console.log("Authorized: ",authorized, data.sessionid);
+        auth_callback && auth_callback(socket.id,data.sessionid);
       });
     });
 
