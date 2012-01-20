@@ -50,9 +50,9 @@ function SocketAuthentication(io, options, auth_callback) {
     console.log("socket.id",socket.id)
     socket.on('auth', function (data) {
       console.log("sessionid:",data.sessionid);
-      self.authorize(socket.id,data.sessionid,function(err,authorized) {
-        console.log("Authorized: ",authorized, data.sessionid);
-        auth_callback && auth_callback(socket.id,data.sessionid);
+      self.authorize(socket.id,data.sessionid,function(err,session) {
+        console.log("Authorized: ",session, data.sessionid);
+        auth_callback && auth_callback(socket.id,session);
       });
     });
 
@@ -60,8 +60,8 @@ function SocketAuthentication(io, options, auth_callback) {
     // --------------------------------------------
     socket.on('auth_ping', function (data) {
       console.log("ping sessionid:",data.sessionid);
-      self.ping(data.sessionid,function(err,authorized) {
-        console.log("Pinged: ",authorized, data.sessionid)
+      self.ping(data.sessionid,function(err,session) {
+        console.log("Pinged: ",session, data.sessionid)
       });
     });
 
@@ -146,15 +146,15 @@ function SocketAuthentication(io, options, auth_callback) {
           self.rc.setex(self.getSessionSocketKey(sessionid), self.session_timeout, socketid, function(err,result) {
             console.log("User connected",obj);
             rc.expire(key,self.session_timeout);  // Reset expiration when user reconnects
-            callback && callback(null, true);            
+            callback && callback(null, JSON.parse(obj));            
           });
         }
         else
-          callback && callback("Session is not longer active.", false);
+          callback && callback("Session is not longer active.", null);
       });
     }
     else if (!sessionid)
-      callback && callback("Not a valid session.", false);
+      callback && callback("Not a valid session.", null);
   };
 
   this.ping = function(sessionid, callback) {
