@@ -52,7 +52,7 @@ function SocketAuthentication(io, options, auth_callback) {
       console.log("sessionid:",data.sessionid);
       self.authorize(socket.id,data.sessionid,function(err,session) {
         console.log("Authorized: ",session, data.sessionid);
-        auth_callback && auth_callback(socket.id,session);
+        auth_callback && auth_callback(socket,session);
       });
     });
 
