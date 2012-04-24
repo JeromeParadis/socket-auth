@@ -125,12 +125,12 @@ function SocketAuthentication(io, options, auth_callback) {
     return options.redis_namespace + 'sockets:' + sessionid;
   };
 
-  this.getSessionSocket = function(sessionkey,callback) {
+  this.getSessionSockets = function(sessionkey,callback) {
     var new_key = sessionkey.replace(options.redis_namespace + 'sessions:',options.redis_namespace + 'sockets:');
-    console.log("getSessionSocket",new_key);
-    self.rc.get(new_key,function(err,data) {
-      if (data)
-        callback && callback(false,data);
+    console.log("getSessionSockets",new_key);
+    self.rc.smembers(new_key,function(err,members) {
+      if (!err && members)
+        callback && callback(false,members);
       else
         callback && callback(true,null);
     });
@@ -143,11 +143,16 @@ function SocketAuthentication(io, options, auth_callback) {
         console.log(err,obj,socketid);
         if (obj) {
           console.log("User found",obj);
-          self.rc.setex(self.getSessionSocketKey(sessionid), self.session_timeout, socketid, function(err,result) {
-            console.log("User connected",obj);
-            rc.expire(key,self.session_timeout);  // Reset expiration when user reconnects
-            callback && callback(null, JSON.parse(obj));            
-          });
+          self.rc.multi()
+            .sadd(self.getSessionSocketKey(sessionid),socketid)
+            .expire(self.getSessionSocketKey(sessionid), self.session_timeout)
+            .scard(self.getSessionSocketKey(sessionid))
+            .exec(function(err,replies) {
+              console.log("User connected with session",sessionid,obj);
+              rc.expire(key,self.session_timeout);  // Reset expiration when user reconnects
+              console.log("DEBUG: number of sockets for session:",replies[2])
+              callback && callback(null, JSON.parse(obj));            
+            });
         }
         else
           callback && callback("Session is not longer active.", null);
