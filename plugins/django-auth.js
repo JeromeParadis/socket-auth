@@ -43,7 +43,7 @@ function SocketAuthentication(socket, options, onSessionLoadedCB) {
     this.onAuthorization = function(handshake, accept) {
         //~ console.log('*** AUTHORIZATION() ***', handshake);
         // Parse the cookie if it's present.
-        if (false && handshake.headers.cookie) {
+        if (handshake.headers.cookie) {
             handshake.cookie = parseCookie(handshake.headers.cookie);
             // Django stores its session ID as 'sessionid'.
             var sessionID = handshake.cookie['sessionid'];
