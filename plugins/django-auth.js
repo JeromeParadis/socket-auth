@@ -8,7 +8,8 @@ var connect = require('connect')
 
 exports = module.exports = SocketAuthentication;
 
-function SocketAuthentication(io, options, onSessionLoadedCB) {
+
+function SocketAuthentication(socket, options, onSessionLoadedCB) {
     
     var redis = options.rc ? options.rc : redis.createClient();
     var session_timeout = (options && options.session_timeout) ? options.session_timeout * 60 : 20 * 60;
@@ -21,10 +22,7 @@ function SocketAuthentication(io, options, onSessionLoadedCB) {
      * is called at the bottom of this class.
      */
     var _init = function() {
-        if (io) {
-            io.set('authorization', onAuthorization);
-            io.sockets.on('connection', onConnect);
-        }
+        if (socket) socket.on('connection', onConnect);
     };
     
     
@@ -39,7 +37,7 @@ function SocketAuthentication(io, options, onSessionLoadedCB) {
      *  @param handshake:io.handshake
      *  @param accept:Function(err:String, acceptConnection:Boolean)
      */
-    var onAuthorization = function(handshake, accept) {
+    this.onAuthorization = function(handshake, accept) {
         //~ console.log('*** AUTHORIZATION() ***', handshake);
         // Parse the cookie if it's present.
         if (handshake.headers.cookie) {
@@ -72,18 +70,18 @@ function SocketAuthentication(io, options, onSessionLoadedCB) {
      * connections.
      *  @param socket:io.Socket
      */
-    var onConnect = function(socket) {
+    var onConnect = function() {
         // Ask for the session on session-less connections.
         if (!socket.handshake.sessionID) {
             socket.emit('request_session_id');
             socket.on('session', onSessionIdReceived);
         }
         else {
-            linkSocketToSession(socket);
+            linkSocketToSession();
         }
         
         socket.on('disconnect', function() {
-            unlinkSocketFromSession(socket);
+            unlinkSocketFromSession();
         });
     }
     
@@ -94,7 +92,6 @@ function SocketAuthentication(io, options, onSessionLoadedCB) {
     var onSessionLoaded = function(err, session) {
         // Reset the expire on the session key for good sessions.
         if (session) redis.expire(buildSessionKey(session.id), session_timeout);
-        if (onSessionLoadedCB) onSessionLoadedCB(err, session);
     }
     
     
@@ -186,8 +183,8 @@ function SocketAuthentication(io, options, onSessionLoadedCB) {
      * Centralises the socket.session list key creation.
      *  @param sessionid:String
      */
-    var buildSessionSocketKey = function(sessionid) {
-        return 'socket.session:' + sessionid;
+    var buildSessionSocketKey = function() {
+        return 'socket.session:' + socket.handshake.sessionID;
     };
     
     
@@ -249,8 +246,8 @@ function SocketAuthentication(io, options, onSessionLoadedCB) {
      *  @param socket:io.Socket
      *  @param callback:Function(err:String, result:Array)
      */
-    var linkSocketToSession = function(socket, callback) {
-        var socketKey = buildSessionSocketKey(socket.handshake.sessionID);
+    var linkSocketToSession = function(callback) {
+        var socketKey = buildSessionSocketKey();
         redis.multi()
           .sadd(socketKey, socket.id)
           .expire(socketKey, session_timeout)
@@ -266,8 +263,8 @@ function SocketAuthentication(io, options, onSessionLoadedCB) {
      * Disassociates the passed socket from its session.
      *  @param socket:io.Socket
      */
-    var unlinkSocketFromSession = function(socket) {
-        redis.srem(buildSessionSocketKey(socket.handshake.sessionID), socket.id);
+    var unlinkSocketFromSession = function() {
+        redis.srem(buildSessionSocketKey(), socket.id);
     };
     
     
