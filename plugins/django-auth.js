@@ -22,7 +22,10 @@ function SocketAuthentication(socket, options, onSessionLoadedCB) {
      * is called at the bottom of this class.
      */
     var _init = function() {
-        if (socket) socket.on('connection', onConnect);
+        // We assume we're passed a connected socket.  There's probably
+        // a way to detect this...
+        //if (socket) socket.on('connection', onConnect);
+        if (socket) onConnect();
     };
     
     
@@ -40,7 +43,7 @@ function SocketAuthentication(socket, options, onSessionLoadedCB) {
     this.onAuthorization = function(handshake, accept) {
         //~ console.log('*** AUTHORIZATION() ***', handshake);
         // Parse the cookie if it's present.
-        if (handshake.headers.cookie) {
+        if (false && handshake.headers.cookie) {
             handshake.cookie = parseCookie(handshake.headers.cookie);
             // Django stores its session ID as 'sessionid'.
             var sessionID = handshake.cookie['sessionid'];
