@@ -40,7 +40,7 @@ function SocketAuthentication(io, options, onSessionLoadedCB) {
      *  @param accept:Function(err:String, acceptConnection:Boolean)
      */
     var onAuthorization = function(handshake, accept) {
-        console.log('*** AUTHORIZATION() ***', handshake);
+        //~ console.log('*** AUTHORIZATION() ***', handshake);
         // Parse the cookie if it's present.
         if (handshake.headers.cookie) {
             handshake.cookie = parseCookie(handshake.headers.cookie);
@@ -48,20 +48,24 @@ function SocketAuthentication(io, options, onSessionLoadedCB) {
             var sessionID = handshake.cookie['sessionid'];
             handshake.sessionID = sessionID;
             loadSession(sessionID, function(err, session) {
-                handshake.session = session;
-                // Reset the expire on the session key for good sessions.
-                if (session) redis.expire(buildSessionKey(sessionID), session_timeout);
-                if (onSessionLoadedCB) onSessionLoadedCB(err, session);
+                if (!err) {
+                    handshake.session = session;
+                    onSessionLoaded(err, session);
+                }
             });
             // Accept the incoming connection whether or not the session
             // loads successfully.
-            accept(null, true);
+            //~ accept(null, true);
+        //~ }
+        //~ else {
+            //~ // No cookie? Still connect.
+            //~ accept('No cookie transmitted.', true);
         }
-        else {
-            // No cookie? No connection!
-            accept('No cookie transmitted.', false);
-        }
+        // Accept the incoming connection whether or not the session
+        // loads successfully.
+        accept(null, true);
     }
+    
     
     /**
      * Adds more handlers and stores the session->socket link for valid
@@ -69,15 +73,40 @@ function SocketAuthentication(io, options, onSessionLoadedCB) {
      *  @param socket:io.Socket
      */
     var onConnect = function(socket) {
-        // bail on session-less connections.
-        if (!socket.handshake.sessionID) return;
-        // else...
-        linkSocketToSession(socket);
+        // Ask for the session on session-less connections.
+        if (!socket.handshake.sessionID) {
+            socket.emit('request_session_id');
+            socket.on('session', onSessionIdReceived);
+        }
+        else {
+            linkSocketToSession(socket);
+        }
+        
         socket.on('disconnect', function() {
             unlinkSocketFromSession(socket);
         });
     }
-          
+    
+    
+    /**
+     * 
+     */
+    var onSessionLoaded = function(err, session) {
+        // Reset the expire on the session key for good sessions.
+        if (session) redis.expire(buildSessionKey(session.id), session_timeout);
+        if (onSessionLoadedCB) onSessionLoadedCB(err, session);
+    }
+    
+    
+    /**
+     * Handler for accepting a session id.
+     */
+    var onSessionIdReceived = function(data) {
+        console.log('*** onSessionIdReceived ***', 'sessionid:', data.sessionid);
+        loadSession(data.sessionid, onSessionLoaded);
+    }
+    
+    
     //~ var onConnect = function (sck) {
         //~ socket = sck;
         //~ 
