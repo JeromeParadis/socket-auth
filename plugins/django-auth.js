@@ -95,6 +95,8 @@ function SocketAuthentication(socket, options, onSessionLoadedCB) {
     var onSessionLoaded = function(err, session) {
         // Reset the expire on the session key for good sessions.
         if (session) redis.expire(buildSessionKey(session.id), session_timeout);
+        if (session)
+            socket.emit('session_auth');
         if (onSessionLoadedCB) onSessionLoadedCB(err, session)
     }
     
