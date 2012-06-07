@@ -6,6 +6,7 @@
   , "keywords": ["websocket", "socket", "authentication", "django"]
   , "author": "Jerome Paradis <jerome@buyosphere.com>"
   , "contributors": [
+	{ "name": "Rob Linto", "email": "rob@buyosphere.com" }
     ]
   , "repository":{
         "type": "git"
