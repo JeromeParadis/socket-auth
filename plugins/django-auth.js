@@ -95,8 +95,9 @@ function SocketAuthentication(socket, options, onSessionLoadedCB) {
     var onSessionLoaded = function(err, session) {
         // Reset the expire on the session key for good sessions.
         if (session) redis.expire(buildSessionKey(session.id), session_timeout);
-        if (session)
+        if (session) {
             socket.emit('session_auth');
+        }
         if (onSessionLoadedCB) onSessionLoadedCB(err, session)
     }
     
@@ -190,7 +191,7 @@ function SocketAuthentication(socket, options, onSessionLoadedCB) {
      *  @param sessionid:String
      */
     var buildSessionSocketKey = function() {
-        return 'socket.session:' + socket.handshake.sessionID;
+        return 'socket.session:' + socket.sessionID;
     };
     
     
@@ -252,8 +253,10 @@ function SocketAuthentication(socket, options, onSessionLoadedCB) {
      *  @param socket:io.Socket
      *  @param callback:Function(err:String, result:Array)
      */
-    var linkSocketToSession = function(callback) {
-        var socketKey = buildSessionSocketKey();
+    var linkSocketToSession = function(sessionid,callback) {
+        socket.sessionID = sessionid;
+        var socketKey = buildSessionSocketKey(sessionid);
+        console.log('*********** link to *************',socketKey)
         redis.multi()
           .sadd(socketKey, socket.id)
           .expire(socketKey, session_timeout)
@@ -301,6 +304,7 @@ function SocketAuthentication(socket, options, onSessionLoadedCB) {
      */
     var loadSession = function(sessionid, callback) {
         redis.hgetall(buildSessionKey(sessionid), function(err, session) {
+            linkSocketToSession(sessionid);
             callback && callback(err, session);
         });
     };

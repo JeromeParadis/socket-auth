@@ -1,6 +1,6 @@
 {
     "name": "socket-auth"
-  , "version": "0.0.2"
+  , "version": "0.0.3"
   , "description": "Socket.io authentication"
   , "homepage": "https://github.com/JeromeParadis/socket-auth"
   , "keywords": ["websocket", "socket", "authentication", "django"]
