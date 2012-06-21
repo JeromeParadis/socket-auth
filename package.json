@@ -1,12 +1,12 @@
 {
     "name": "socket-auth"
-  , "version": "0.0.3"
+  , "version": "0.0.4"
   , "description": "Socket.io authentication"
   , "homepage": "https://github.com/JeromeParadis/socket-auth"
   , "keywords": ["websocket", "socket", "authentication", "django"]
   , "author": "Jerome Paradis <jerome@buyosphere.com>"
   , "contributors": [
-	{ "name": "Rob Linto", "email": "rob@buyosphere.com" }
+	{ "name": "Rob Linton", "email": "rob@buyosphere.com" }
     ]
   , "repository":{
         "type": "git"

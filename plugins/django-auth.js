@@ -13,6 +13,7 @@ function SocketAuthentication(socket, options, onSessionLoadedCB) {
     
     var redis = options.rc ? options.rc : redis.createClient();
     var session_timeout = (options && options.session_timeout) ? options.session_timeout * 60 : 20 * 60;
+    this.debug_mode = options && options.debug || false;
     var self = this;
     
     
@@ -106,7 +107,8 @@ function SocketAuthentication(socket, options, onSessionLoadedCB) {
      * Handler for accepting a session id.
      */
     var onSessionIdReceived = function(data) {
-        console.log('*** onSessionIdReceived ***', 'sessionid:', data.sessionid);
+        if (self.debug_mode)
+            console.log('*** onSessionIdReceived ***', 'sessionid:', data.sessionid);
         loadSession(data.sessionid, onSessionLoaded);
     }
     
@@ -232,7 +234,8 @@ function SocketAuthentication(socket, options, onSessionLoadedCB) {
                 });
                 //console.log('cmds:', cmds);
                 redis.multi(cmds).exec(function(err, results) {
-                    console.log('found sockets:', err, results);
+                    if (self.debug_mode)
+                        console.log('found sockets:', err, results);
                     results.forEach(function(r) {
                         sockets = sockets.concat(r);
                     });
@@ -256,12 +259,14 @@ function SocketAuthentication(socket, options, onSessionLoadedCB) {
     var linkSocketToSession = function(sessionid,callback) {
         socket.sessionID = sessionid;
         var socketKey = buildSessionSocketKey(sessionid);
-        console.log('*********** link to *************',socketKey)
+        if (self.debug_mode)
+            console.log('*********** link to *************',socketKey)
         redis.multi()
           .sadd(socketKey, socket.id)
           .expire(socketKey, session_timeout)
           .exec(function(err, result) {
-            console.log("User connected with sessionID:", socket.handshake.sessionID);
+            if (self.debug_mode)
+                console.log("User connected with sessionID:", socket.handshake.sessionID);
             callback && callback(err, result);
         });
         callback && callback("Not a valid session.", null);
@@ -292,7 +297,8 @@ function SocketAuthentication(socket, options, onSessionLoadedCB) {
             ['sadd', buildUsersSessionsKey(userid), sessionKey],
             ['expire', buildUsersSessionsKey(userid), session_timeout]
         ]).exec(function(err, result) {
-            console.log('SocketAuthentication.addSession()', err, result);
+            if (self.debug_mode)
+                console.log('SocketAuthentication.addSession()', err, result);
         });
     };
     
