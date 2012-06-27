@@ -1,6 +1,6 @@
 {
     "name": "socket-auth"
-  , "version": "0.0.4"
+  , "version": "0.0.5"
   , "description": "Socket.io authentication"
   , "homepage": "https://github.com/JeromeParadis/socket-auth"
   , "keywords": ["websocket", "socket", "authentication", "django"]
@@ -13,9 +13,9 @@
       , "url": "https://JeromeParadis@github.com/JeromeParadis/socket-auth.git"
     }
   , "dependencies": {
-        "redis": "0.6.7"
-      , "socket.io": "0.8.7"
-      , "connect": "1.8.5"
+        "redis": ">=0.6.7"
+      , "socket.io": ">=0.8.7"
+      , "connect": ">=1.8.5"
     }
   , "devDependencies": {
     }
